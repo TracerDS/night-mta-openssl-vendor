@@ -1,14 +1,19 @@
 @echo off
 
-set flags=%*
+set flags=no-shared
+set flags=%flags% %*
 set cwd=%~dp0
 
-set install_dir=Bin\OpenSSL
-set certs_dir=Bin\Certs
-set libs_dir=Bin\Libs
+set bin_dir=Bin
+
+set install_dir=%bin_dir%/bin
+set certs_dir=%bin_dir%/misc
+set libs_dir=%bin_dir%/lib
 
 set install_dir=%cwd%%install_dir%
 set certs_dir=%cwd%%certs_dir%
 set libs_dir=%cwd%%libs_dir%
 
-perl Configure --prefix="%install_dir%" --openssldir="%certs_dir%" --libdir="%libs_dir%" %flags% 
+if not exist "%bin_dir%" mkdir "%bin_dir%"
+
+perl Configure --prefix="%install_dir%" --openssldir="%certs_dir%" %flags% 
