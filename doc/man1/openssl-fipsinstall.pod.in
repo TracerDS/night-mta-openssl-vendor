@@ -22,8 +22,9 @@ B<openssl fipsinstall>
 [B<-pedantic>]
 [B<-no_conditional_errors>]
 [B<-no_security_checks>]
+[B<-hmac_key_check>]
+[B<-kmac_key_check>]
 [B<-ems_check>]
-[B<-eddsa_no_verify_digested>]
 [B<-no_drbg_truncated_digests>]
 [B<-signature_digest_check>]
 [B<-hkdf_digest_check>]
@@ -46,6 +47,7 @@ B<openssl fipsinstall>
 [B<-sshkdf_key_check>]
 [B<-sskdf_key_check>]
 [B<-x963kdf_key_check>]
+[B<-ecdh_cofactor_check>]
 [B<-self_test_onload>]
 [B<-self_test_oninstall>]
 [B<-corrupt_desc> I<selftest_description>]
@@ -207,16 +209,20 @@ Configure the module to enable a run-time Extended Master Secret (EMS) check
 when using the TLS1_PRF KDF algorithm. This check is disabled by default.
 See RFC 7627 for information related to EMS.
 
-=item B<-eddsa_no_verify_digested>
-
-Configure the module to not allow EdDSA to verify from a message digest
-directly.  Instead, EdDSA will digest the message itself.
-This check is disabled by default.
-
 =item B<-no_short_mac>
 
 Configure the module to not allow short MAC outputs.
 See SP 800-185 8.4.2 and FIPS 140-3 ID C.D for details.
+
+=item B<-hmac_key_check>
+
+Configure the module to not allow small keys sizes when using HMAC.
+See SP 800-131Ar2 for details.
+
+=item B<-kmac_key_check>
+
+Configure the module to not allow small keys sizes when using KMAC.
+See SP 800-131Ar2 for details.
 
 =item B<-no_drbg_truncated_digests>
 
@@ -338,6 +344,12 @@ See NIST SP 800-131Ar2 for details.
 
 Configure the module to not perform run-time lower bound check for PBKDF2.
 See NIST SP 800-132 for details.
+
+=item B<-ecdh_cofactor_check>
+
+Configure the module to enable a run-time check that ECDH uses the EC curves
+cofactor value when deriving a key. This only affects the 'B' and 'K' curves.
+See SP 800-56A r3 Section 5.7.1.2 for details.
 
 =item B<-self_test_onload>
 

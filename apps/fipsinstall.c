@@ -38,9 +38,10 @@ typedef enum OPTION_choice {
     OPT_NO_LOG, OPT_CORRUPT_DESC, OPT_CORRUPT_TYPE, OPT_QUIET, OPT_CONFIG,
     OPT_NO_CONDITIONAL_ERRORS,
     OPT_NO_SECURITY_CHECKS,
-    OPT_TLS_PRF_EMS_CHECK, OPT_EDDSA_NO_VERIFY_DIGESTED, OPT_NO_SHORT_MAC,
+    OPT_TLS_PRF_EMS_CHECK, OPT_NO_SHORT_MAC,
     OPT_DISALLOW_PKCS15_PADDING, OPT_RSA_PSS_SALTLEN_CHECK,
     OPT_DISALLOW_SIGNATURE_X931_PADDING,
+    OPT_HMAC_KEY_CHECK, OPT_KMAC_KEY_CHECK,
     OPT_DISALLOW_DRGB_TRUNC_DIGEST,
     OPT_SIGNATURE_DIGEST_CHECK,
     OPT_HKDF_DIGEST_CHECK,
@@ -59,6 +60,7 @@ typedef enum OPTION_choice {
     OPT_SSKDF_KEY_CHECK,
     OPT_X963KDF_KEY_CHECK,
     OPT_NO_PBKDF2_LOWER_BOUND_CHECK,
+    OPT_ECDH_COFACTOR_CHECK,
     OPT_SELF_TEST_ONLOAD, OPT_SELF_TEST_ONINSTALL
 } OPTION_CHOICE;
 
@@ -83,13 +85,13 @@ const OPTIONS fipsinstall_options[] = {
      "Forces self tests to run once on module installation"},
     {"ems_check", OPT_TLS_PRF_EMS_CHECK, '-',
      "Enable the run-time FIPS check for EMS during TLS1_PRF"},
-    {"eddsa_no_verify_digested", OPT_EDDSA_NO_VERIFY_DIGESTED, '-',
-     "Disallow Ed25519/Ed448 verification of pre-hashed data"},
     {"no_short_mac", OPT_NO_SHORT_MAC, '-', "Disallow short MAC output"},
     {"no_drbg_truncated_digests", OPT_DISALLOW_DRGB_TRUNC_DIGEST, '-',
      "Disallow truncated digests with Hash and HMAC DRBGs"},
     {"signature_digest_check", OPT_SIGNATURE_DIGEST_CHECK, '-',
      "Enable checking for approved digests for signatures"},
+    {"hmac_key_check", OPT_HMAC_KEY_CHECK, '-', "Enable key check for HMAC"},
+    {"kmac_key_check", OPT_KMAC_KEY_CHECK, '-', "Enable key check for KMAC"},
     {"hkdf_digest_check", OPT_HKDF_DIGEST_CHECK, '-',
      "Enable digest check for HKDF"},
     {"tls13_kdf_digest_check", OPT_TLS13_KDF_DIGEST_CHECK, '-',
@@ -128,6 +130,8 @@ const OPTIONS fipsinstall_options[] = {
      "Enable key check for X963KDF"},
     {"no_pbkdf2_lower_bound_check", OPT_NO_PBKDF2_LOWER_BOUND_CHECK, '-',
      "Disable lower bound check for PBKDF2"},
+    {"ecdh_cofactor_check", OPT_ECDH_COFACTOR_CHECK, '-',
+     "Enable Cofactor check for ECDH"},
     OPT_SECTION("Input"),
     {"in", OPT_IN, '<', "Input config file, used when verifying"},
 
@@ -148,8 +152,9 @@ typedef struct {
     unsigned int self_test_onload : 1;
     unsigned int conditional_errors : 1;
     unsigned int security_checks : 1;
+    unsigned int hmac_key_check : 1;
+    unsigned int kmac_key_check : 1;
     unsigned int tls_prf_ems_check : 1;
-    unsigned int eddsa_no_verify_digested : 1;
     unsigned int no_short_mac : 1;
     unsigned int drgb_no_trunc_dgst : 1;
     unsigned int signature_digest_check : 1;
@@ -172,6 +177,7 @@ typedef struct {
     unsigned int sskdf_key_check : 1;
     unsigned int x963kdf_key_check : 1;
     unsigned int pbkdf2_lower_bound_check : 1;
+    unsigned int ecdh_cofactor_check : 1;
 } FIPS_OPTS;
 
 /* Pedantic FIPS compliance */
@@ -179,8 +185,9 @@ static const FIPS_OPTS pedantic_opts = {
     1,      /* self_test_onload */
     1,      /* conditional_errors */
     1,      /* security_checks */
+    1,      /* hmac_key_check */
+    1,      /* kmac_key_check */
     1,      /* tls_prf_ems_check */
-    1,      /* eddsa_no_verify_digested */
     1,      /* no_short_mac */
     1,      /* drgb_no_trunc_dgst */
     1,      /* signature_digest_check */
@@ -203,6 +210,7 @@ static const FIPS_OPTS pedantic_opts = {
     1,      /* sskdf_key_check */
     1,      /* x963kdf_key_check */
     1,      /* pbkdf2_lower_bound_check */
+    1,      /* ecdh_cofactor_check */
 };
 
 /* Default FIPS settings for backward compatibility */
@@ -210,8 +218,9 @@ static FIPS_OPTS fips_opts = {
     1,      /* self_test_onload */
     1,      /* conditional_errors */
     1,      /* security_checks */
+    0,      /* hmac_key_check */
+    0,      /* kmac_key_check */
     0,      /* tls_prf_ems_check */
-    0,      /* eddsa_no_verify_digested */
     0,      /* no_short_mac */
     0,      /* drgb_no_trunc_dgst */
     0,      /* signature_digest_check */
@@ -234,6 +243,7 @@ static FIPS_OPTS fips_opts = {
     0,      /* sskdf_key_check */
     0,      /* x963kdf_key_check */
     1,      /* pbkdf2_lower_bound_check */
+    0,      /* ecdh_cofactor_check */
 };
 
 static int check_non_pedantic_fips(int pedantic, const char *name)
@@ -353,10 +363,12 @@ static int write_config_fips_section(BIO *out, const char *section,
                       opts->conditional_errors ? "1" : "0") <= 0
         || BIO_printf(out, "%s = %s\n", OSSL_PROV_FIPS_PARAM_SECURITY_CHECKS,
                       opts->security_checks ? "1" : "0") <= 0
+        || BIO_printf(out, "%s = %s\n", OSSL_PROV_FIPS_PARAM_HMAC_KEY_CHECK,
+                      opts->hmac_key_check ? "1": "0") <= 0
+        || BIO_printf(out, "%s = %s\n", OSSL_PROV_FIPS_PARAM_KMAC_KEY_CHECK,
+                      opts->kmac_key_check ? "1": "0") <= 0
         || BIO_printf(out, "%s = %s\n", OSSL_PROV_FIPS_PARAM_TLS1_PRF_EMS_CHECK,
                       opts->tls_prf_ems_check ? "1" : "0") <= 0
-        || BIO_printf(out, "%s = %s\n", OSSL_PROV_FIPS_PARAM_EDDSA_NO_VERIFY_DIGESTED,
-                      opts->eddsa_no_verify_digested ? "1" : "0") <= 0
         || BIO_printf(out, "%s = %s\n", OSSL_PROV_PARAM_NO_SHORT_MAC,
                       opts->no_short_mac ? "1" : "0") <= 0
         || BIO_printf(out, "%s = %s\n", OSSL_PROV_FIPS_PARAM_DRBG_TRUNC_DIGEST,
@@ -410,6 +422,8 @@ static int write_config_fips_section(BIO *out, const char *section,
         || BIO_printf(out, "%s = %s\n",
                       OSSL_PROV_FIPS_PARAM_PBKDF2_LOWER_BOUND_CHECK,
                       opts->pbkdf2_lower_bound_check ? "1" : "0") <= 0
+        || BIO_printf(out, "%s = %s\n", OSSL_PROV_FIPS_PARAM_ECDH_COFACTOR_CHECK,
+                      opts->ecdh_cofactor_check ? "1": "0") <= 0
         || !print_mac(out, OSSL_PROV_FIPS_PARAM_MODULE_MAC, module_mac,
                       module_mac_len))
         goto end;
@@ -590,11 +604,14 @@ int fipsinstall_main(int argc, char **argv)
                 goto end;
             fips_opts.security_checks = 0;
             break;
+        case OPT_HMAC_KEY_CHECK:
+            fips_opts.hmac_key_check = 1;
+            break;
+        case OPT_KMAC_KEY_CHECK:
+            fips_opts.kmac_key_check = 1;
+            break;
         case OPT_TLS_PRF_EMS_CHECK:
             fips_opts.tls_prf_ems_check = 1;
-            break;
-        case OPT_EDDSA_NO_VERIFY_DIGESTED:
-            fips_opts.eddsa_no_verify_digested = 1;
             break;
         case OPT_NO_SHORT_MAC:
             fips_opts.no_short_mac = 1;
@@ -663,6 +680,9 @@ int fipsinstall_main(int argc, char **argv)
             if (!check_non_pedantic_fips(pedantic, "no_pbkdf2_lower_bound_check"))
                 goto end;
             fips_opts.pbkdf2_lower_bound_check = 0;
+            break;
+        case OPT_ECDH_COFACTOR_CHECK:
+            fips_opts.ecdh_cofactor_check = 1;
             break;
         case OPT_QUIET:
             quiet = 1;

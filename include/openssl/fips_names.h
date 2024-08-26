@@ -62,19 +62,28 @@ extern "C" {
 # define OSSL_PROV_FIPS_PARAM_TLS1_PRF_EMS_CHECK "tls1-prf-ems-check"
 
 /*
- * A boolean that determines if Ed448 and Ed25519 are forbidden to process
- * a pre-hashed message or not.
- * This is disabled by default.
- * Type: OSSL_PARAM_UTF8_STRING
- */
-# define OSSL_PROV_FIPS_PARAM_EDDSA_NO_VERIFY_DIGESTED "eddsa-no-verify-digested"
-/*
  * A boolean that determines if the runtime FIPS check for undersized MAC output
  * is performed.
  * This is enabled by default.
  * Type: OSSL_PARAM_UTF8_STRING
  */
-#define OSSL_PROV_FIPS_PARAM_NO_SHORT_MAC "no-short-mac"
+# define OSSL_PROV_FIPS_PARAM_NO_SHORT_MAC "no-short-mac"
+
+/*
+ * A boolean that determines if the runtime FIPS key check for HMAC is
+ * performed.
+ * This is enabled by default.
+ * Type: OSSL_PARAM_UTF8_STRING
+ */
+# define OSSL_PROV_FIPS_PARAM_HMAC_KEY_CHECK "hmac-key-check"
+
+/*
+ * A boolean that determines if the runtime FIPS key check for KMAC is
+ * performed.
+ * This is enabled by default.
+ * Type: OSSL_PARAM_UTF8_STRING
+ */
+# define OSSL_PROV_FIPS_PARAM_KMAC_KEY_CHECK "kmac-key-check"
 
 /*
  * A boolean that determines if truncated digests can be used with Hash and HMAC
@@ -246,6 +255,14 @@ extern "C" {
  * Type: OSSL_PARAM_UTF8_STRING
  */
 # define OSSL_PROV_FIPS_PARAM_PBKDF2_LOWER_BOUND_CHECK "pbkdf2-lower-bound-check"
+
+/*
+ * A boolean that determines if the runtime cofactor check for ECDH is
+ * performed.
+ * This is disabled by default.
+ * Type: OSSL_PARAM_UTF8_STRING
+ */
+# define OSSL_PROV_FIPS_PARAM_ECDH_COFACTOR_CHECK "ecdh-cofactor-check"
 
 # ifdef __cplusplus
 }
